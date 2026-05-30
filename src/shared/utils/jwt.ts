@@ -11,7 +11,7 @@ export function signAccessToken(payload: Omit<TokenPayload, 'version' | 'iat' | 
   });
 }
 
-export function signRefreshToken(userId: number): string {
+export function signRefreshToken(userId: string): string {
   return jwt.sign({ sub: userId, version: CONSTANTS.JWT_VERSION }, secret(), {
     expiresIn: env.JWT_REFRESH_EXPIRY as jwt.SignOptions['expiresIn'],
   });

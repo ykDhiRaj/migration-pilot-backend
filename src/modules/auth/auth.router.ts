@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { validate } from '@shared/middleware';
 import { ok, created } from '@core/http';
-import { RegisterSchema, LoginSchema, RefreshSchema } from './auth.schema';
-import { register, login, refreshTokens } from './auth.service';
+import { RegisterSchema, LoginSchema, RefreshSchema, GoogleAuthSchema } from './auth.schema';
+import { registerLocal, login, refreshTokens, registerGoogle, googleAuthDev } from './auth.service';
 
 export const authRouter = Router();
 
@@ -13,8 +13,26 @@ export const authRouter = Router();
  */
 authRouter.post('/register', validate(RegisterSchema), async (req, res, next) => {
   try {
-    const result = await register(req.body);
+    const result = await registerLocal(req.body);
     created(res, result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/google',validate(GoogleAuthSchema),async(req,res,next)=>{
+  try{
+    const result = await registerGoogle(req.body.idToken);
+    ok(res, result);
+  }catch(err){
+    next(err);
+  }
+})
+
+authRouter.post('/google-dev', async (_req, res, next) => {
+  try {
+    const result = await googleAuthDev();
+    ok(res, result);
   } catch (err) {
     next(err);
   }
