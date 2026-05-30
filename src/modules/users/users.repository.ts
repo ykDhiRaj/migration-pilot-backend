@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm';
 import { getDb, type Db } from '@core/db';
-import { users } from '@db/schema';
+import { User, users } from '@db/schema';
 import { NotFoundError } from '@core/errors';
 
 export type { User } from '@db/schema';
-export type PublicUser = Omit<import('@db/schema').User, 'passwordHash'>;
+export type PublicUser = Omit<User, 'password'>;
 
 export async function findUserById(
   id: number,
@@ -23,9 +23,28 @@ export async function findUserByEmail(
 }
 
 export async function createUser(
-  data: { name: string; email: string; passwordHash: string },
+  data: {
+    email: string;
+    password: string;
+    authProvider: 'LOCAL' | 'GOOGLE';
+  },
   db: Db = getDb(),
-): Promise<import('@db/schema').User> {
+) {
+  const result = await db.insert(users).values(data).returning();
+  return result[0];
+}
+
+export async function googleCreatedUser(
+  data:{
+    name:string;
+    email:string;
+    authProvider : 'LOCAL' | 'GOOGLE';
+    providerId:string;
+    profileImage:string | undefined;
+    isEmailVerified:boolean
+  },
+  db: Db = getDb(),
+){
   const result = await db.insert(users).values(data).returning();
   return result[0];
 }
@@ -46,6 +65,6 @@ export async function updateUserById(
 }
 
 export function stripPassword(user: import('@db/schema').User): PublicUser {
-  const { passwordHash: _omit, ...rest } = user;
+  const { password: _omit, ...rest } = user;
   return rest;
 }

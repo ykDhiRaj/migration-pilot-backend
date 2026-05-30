@@ -40,7 +40,7 @@ export interface PaginatedResult<T> {
 
 /** JWT access token payload */
 export interface TokenPayload {
-  sub: number;       // user id
+  sub: string;       // user id
   email: string;
   version: string;   // JWT_VERSION — bump to invalidate all sessions
   iat?: number;

@@ -7,8 +7,10 @@ import {
   createUser,
   stripPassword,
   PublicUser,
+  googleCreatedUser,
 } from '@modules/users/users.repository';
 import { RegisterDto, LoginDto } from './auth.schema';
+import { OAuth2Client } from 'google-auth-library';
 
 export interface AuthTokens {
   accessToken: string;
@@ -20,6 +22,7 @@ export interface AuthResult {
   tokens: AuthTokens;
 }
 
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 /**
  * Auth service.
  *
@@ -28,33 +31,65 @@ export interface AuthResult {
  * Refresh  → verify refresh token → issue new access token
  */
 
-export async function register(dto: RegisterDto): Promise<AuthResult> {
+export async function registerLocal(
+  dto: RegisterDto
+): Promise<AuthResult> {
   const existing = await findUserByEmail(dto.email);
+
   if (existing) {
-    throw new ConflictError('An account with this email already exists');
+    throw new ConflictError(
+      'An account with this email already exists'
+    );
   }
 
-  const passwordHash = await hashPassword(dto.password);
-  const user = await createUser({ name: dto.name, email: dto.email, passwordHash });
+  const password = await hashPassword(dto.password);
+
+  const user = await createUser({
+    email: dto.email,
+    password,
+    authProvider: 'LOCAL',
+  });
+
   const publicUser = stripPassword(user);
 
   return {
     user: publicUser,
-    tokens: buildTokens(user.id, user.email),
+    tokens: buildTokens(
+      user.id,
+      user.email
+    ),
   };
 }
 
-export async function login(dto: LoginDto): Promise<AuthResult> {
-  const user = await findUserByEmail(dto.email);
+export async function registerGoogle(idToken:string): Promise<AuthResult>{
+    const ticket = await client.verifyIdToken({
+    idToken,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
 
-  // Identical error message for wrong email & wrong password — avoids enumeration
-  if (!user) {
-    throw new BadRequestError('Invalid credentials');
+  const payload = ticket.getPayload();
+
+  if (!payload?.email) {
+    throw new Error('Unable to retrieve Google account email');
   }
 
-  const valid = await verifyPassword(dto.password, user.passwordHash);
-  if (!valid) {
-    throw new BadRequestError('Invalid credentials');
+  const email = payload.email;
+  const name = payload.name ?? '';
+  const providerId= payload.sub;
+  const profileImage = payload.picture;
+  const isEmailVerified = payload.email_verified ?? false;
+
+  let user = await findUserByEmail(email);
+
+  if (!user) {
+    user = await googleCreatedUser({
+      name,
+      email,
+      authProvider: 'GOOGLE',
+      providerId,
+      profileImage,
+      isEmailVerified,
+    });
   }
 
   return {
@@ -62,6 +97,47 @@ export async function login(dto: LoginDto): Promise<AuthResult> {
     tokens: buildTokens(user.id, user.email),
   };
 }
+
+export async function googleAuthDev(): Promise<AuthResult> {
+  const email = 'test@gmail.com';
+
+  let user = await findUserByEmail(email);
+
+  if (!user) {
+    user = await googleCreatedUser({
+      name: 'Google Test User',
+      email,
+      authProvider: 'GOOGLE',
+      providerId: 'google-test-id',
+      profileImage: "",
+      isEmailVerified: true,
+    });
+  }
+
+  return {
+    user: stripPassword(user),
+    tokens: buildTokens(user.id, user.email),
+  };
+}
+
+// export async function login(dto: LoginDto): Promise<AuthResult> {
+//   const user = await findUserByEmail(dto.email);
+
+//   // Identical error message for wrong email & wrong password — avoids enumeration
+//   if (!user) {
+//     throw new BadRequestError('Invalid credentials');
+//   }
+
+//   const valid = await verifyPassword(dto.password, user.password);
+//   if (!valid) {
+//     throw new BadRequestError('Invalid credentials');
+//   }
+
+//   return {
+//     user: stripPassword(user),
+//     tokens: buildTokens(user.id, user.email),
+//   };
+// }
 
 export async function refreshTokens(rawRefreshToken: string): Promise<{ accessToken: string }> {
   let payload: ReturnType<typeof verifyToken>;
@@ -82,7 +158,7 @@ export async function refreshTokens(rawRefreshToken: string): Promise<{ accessTo
 
 // ── Private ──────────────────────────────────────────────────────────────────
 
-function buildTokens(userId: number, email: string): AuthTokens {
+function buildTokens(userId: string, email: string): AuthTokens {
   return {
     accessToken: signAccessToken({ sub: userId, email }),
     refreshToken: signRefreshToken(userId),

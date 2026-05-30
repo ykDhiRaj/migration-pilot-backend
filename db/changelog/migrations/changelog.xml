@@ -5,37 +5,73 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
     http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
 
-  <changeSet id="1" author="Dhiraj Jatav">
-    <comment>Creates the users table.</comment>
+ <changeSet id="1" author="Dhiraj Jatav">
 
-    <createTable tableName="users">
-      <column name="id" type="SERIAL">
-        <constraints primaryKey="true" nullable="false"/>
-      </column>
-      <column name="name" type="VARCHAR(100)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="email" type="VARCHAR(255)">
-        <constraints nullable="false" unique="true" uniqueConstraintName="uq_users_email"/>
-      </column>
-      <column name="password_hash" type="VARCHAR(255)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
-        <constraints nullable="false"/>
-      </column>
-      <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
+        <comment>Creates the users table.</comment>
+        <!-- Required for gen_random_uuid() -->
+        <sql>
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+        </sql>
 
-    <createIndex tableName="users" indexName="idx_users_email">
-      <column name="email"/>
-    </createIndex>
+        <createTable tableName="users">
 
-    <rollback>
-      <dropTable tableName="users" cascadeConstraints="true"/>
-    </rollback>
-  </changeSet>
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="name" type="VARCHAR(255)"/>
+
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_users_email"/>
+            </column>
+
+            <column name="password" type="VARCHAR(255)"/>
+
+            <column name="auth_provider" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="provider_id" type="VARCHAR(255)"/>
+
+            <column name="profile_image" type="TEXT"/>
+
+            <column name="is_email_verified" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+
+        <sql>
+            ALTER TABLE users
+            ADD CONSTRAINT chk_users_auth_provider
+            CHECK (auth_provider IN ('LOCAL', 'GOOGLE'));
+        </sql>
+
+        <createIndex tableName="users" indexName="idx_users_email">
+            <column name="email"/>
+        </createIndex>
+
+        <createIndex tableName="users" indexName="idx_users_provider_id">
+            <column name="provider_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="users" indexName="idx_users_provider_id"/>
+
+            <dropIndex tableName="users" indexName="idx_users_email"/>
+
+            <dropTable tableName="users" cascadeConstraints="true"/>
+        </rollback>
+
+</changeSet>
+
 
 </databaseChangeLog>
