@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+  <!--
+    Master changelog — lists all migrations in order.
+
+    To add a migration:
+      1. Create db/changelog/migrations/NNN_describe_change.xml
+      2. Add an <include> line below (in numeric order)
+      3. Run: npm run db:migrate
+  -->
+
+  <include file="migrations/changelog.xml" relativeToChangelogFile="true"/>
+
+  <!-- <include file="migrations/002_your_next_migration.xml" relativeToChangelogFile="true"/> -->
+
+</databaseChangeLog>

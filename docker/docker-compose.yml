@@ -1,0 +1,56 @@
+name: forge-api
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: forge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: forge_db
+      POSTGRES_USER: forge_user
+      POSTGRES_PASSWORD: forge_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forge_user -d forge_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Run with: npm run docker:migrate
+  liquibase:
+    image: liquibase/liquibase:4.25
+    container_name: forge-liquibase
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../db/changelog:/liquibase/changelog:ro
+    command: >
+      --url=jdbc:postgresql://postgres:5432/forge_db
+      --username=forge_user
+      --password=forge_pass
+      --changeLogFile=changelog/master.xml
+      update
+    profiles:
+      - migrate
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: forge-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
