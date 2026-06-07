@@ -35,7 +35,7 @@ export async function createUser(
     email: string;
     authProvider: 'LOCAL' | 'GOOGLE';
     name?: string;
-    is_email_verified?: boolean;
+    isEmailVerified?:boolean
   },
   db: Db = getDb(),
 ) {

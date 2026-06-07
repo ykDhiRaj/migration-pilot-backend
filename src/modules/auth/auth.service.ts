@@ -190,7 +190,7 @@ export async function verifyRegistrationOtp(email: string, otp: string) {
   const user = await createUser({
     email,
     authProvider: 'LOCAL',
-    is_email_verified: true
+    isEmailVerified: true
   });
 
   await deleteEmailVerificationByEmail(email);
