@@ -1,13 +1,13 @@
 import { eq } from 'drizzle-orm';
 import { getDb, type Db } from '@core/db';
-import { User, users } from '@db/schema';
+import { emailVerifications, User, users } from '@db/schema';
 import { NotFoundError } from '@core/errors';
 
 export type { User } from '@db/schema';
-export type PublicUser = Omit<User, 'password'>;
+export type PublicUser  = Pick<User, 'id' | 'name' | 'email'>;
 
 export async function findUserById(
-  id: number,
+  id: string,
   db: Db = getDb(),
 ): Promise<import('@db/schema').User | null> {
   const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -22,17 +22,50 @@ export async function findUserByEmail(
   return result[0] ?? null;
 }
 
+export async function findRegisteringUserByEmail(
+  email:string,
+  db: Db = getDb(),
+):Promise<import('@db/schema').EmailVerification>{
+  const result = await db.select().from(emailVerifications).where(eq(emailVerifications.email, email)).limit(1);
+  return result[0] ?? null;
+}
+
 export async function createUser(
   data: {
     email: string;
-    password: string;
     authProvider: 'LOCAL' | 'GOOGLE';
+    name?: string;
+    is_email_verified?: boolean;
   },
   db: Db = getDb(),
 ) {
   const result = await db.insert(users).values(data).returning();
   return result[0];
 }
+
+export async function createNewRegisterUser(
+  data:{
+  email:string,
+  otp:string,
+  expiresAt:Date
+},
+db: Db = getDb()){
+  const result = await db.insert(emailVerifications).values(data).returning();
+  return result[0];
+}
+
+export async function updateEmailVerificationByEmail(
+  email:string,
+  data:Partial<{
+    otp:string;
+    expiresAt:Date;
+  }>,
+  db: Db = getDb(),
+):Promise<import('@db/schema').EmailVerification>{
+  const result = await db.update(emailVerifications).set(data).where(eq(emailVerifications.email, email)).returning();
+  if(!result[0]) throw new NotFoundError('Email Verification');
+  return result[0];
+} 
 
 export async function googleCreatedUser(
   data:{
@@ -50,8 +83,8 @@ export async function googleCreatedUser(
 }
 
 export async function updateUserById(
-  id: number,
-  data: Partial<{ name: string; email: string }>,
+  id: string,
+  data: Partial<{ name: string;}>,
   db: Db = getDb(),
 ): Promise<import('@db/schema').User> {
   const result = await db
@@ -64,7 +97,25 @@ export async function updateUserById(
   return result[0];
 }
 
-export function stripPassword(user: import('@db/schema').User): PublicUser {
-  const { password: _omit, ...rest } = user;
-  return rest;
+export async function deleteUserById(
+  id:string,
+  db: Db = getDb(),
+):Promise<void>{
+  const result = await db.delete(users)
+    .where(eq(users.id, id))
+    .returning({ id: users.id });
+
+  if (result.length === 0) throw new NotFoundError('User');
 }
+
+export async function deleteEmailVerificationByEmail(
+  email: string,
+  db: Db = getDb(),
+): Promise<void> {
+  await db.delete(emailVerifications).where(eq(emailVerifications.email, email));
+}
+
+// export function stripPassword(user: import('@db/schema').User): PublicUser {
+//   const { password: _omit, ...rest } = user;
+//   return rest;
+// }

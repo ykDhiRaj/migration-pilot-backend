@@ -5,73 +5,105 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
     http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
 
- <changeSet id="1" author="Dhiraj Jatav">
+<changeSet id="1" author="Dhiraj Jatav">
 
-        <comment>Creates the users table.</comment>
-        <!-- Required for gen_random_uuid() -->
-        <sql>
-            CREATE EXTENSION IF NOT EXISTS pgcrypto;
-        </sql>
+    <comment>Creates the users table.</comment>
 
-        <createTable tableName="users">
+    <sql>
+        CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    </sql>
 
-            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
-                <constraints primaryKey="true" nullable="false"/>
-            </column>
+    <createTable tableName="users">
 
-            <column name="name" type="VARCHAR(255)"/>
+        <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+            <constraints primaryKey="true" nullable="false"/>
+        </column>
 
-            <column name="email" type="VARCHAR(255)">
-                <constraints nullable="false" unique="true" uniqueConstraintName="uq_users_email"/>
-            </column>
+        <column name="name" type="VARCHAR(255)"/>
 
-            <column name="password" type="VARCHAR(255)"/>
+        <column name="email" type="VARCHAR(255)">
+            <constraints nullable="false" unique="true" uniqueConstraintName="uq_users_email"/>
+        </column>
 
-            <column name="auth_provider" type="VARCHAR(20)">
-                <constraints nullable="false"/>
-            </column>
+        <column name="auth_provider" type="VARCHAR(20)">
+            <constraints nullable="false"/>
+        </column>
 
-            <column name="provider_id" type="VARCHAR(255)"/>
+        <column name="provider_id" type="VARCHAR(255)"/>
 
-            <column name="profile_image" type="TEXT"/>
+        <column name="is_email_verified" type="BOOLEAN" defaultValueBoolean="false">
+            <constraints nullable="false"/>
+        </column>
 
-            <column name="is_email_verified" type="BOOLEAN" defaultValueBoolean="false">
-                <constraints nullable="false"/>
-            </column>
+        <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+            <constraints nullable="false"/>
+        </column>
 
-            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
-                <constraints nullable="false"/>
-            </column>
+        <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+            <constraints nullable="false"/>
+        </column>
 
-            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
-                <constraints nullable="false"/>
-            </column>
+    </createTable>
 
-        </createTable>
+    <sql>
+        ALTER TABLE users
+        ADD CONSTRAINT chk_users_auth_provider
+        CHECK (auth_provider IN ('LOCAL', 'GOOGLE'));
+    </sql>
 
-        <sql>
-            ALTER TABLE users
-            ADD CONSTRAINT chk_users_auth_provider
-            CHECK (auth_provider IN ('LOCAL', 'GOOGLE'));
-        </sql>
+    <createIndex tableName="users" indexName="idx_users_email">
+        <column name="email"/>
+    </createIndex>
 
-        <createIndex tableName="users" indexName="idx_users_email">
-            <column name="email"/>
-        </createIndex>
+    <createIndex tableName="users" indexName="idx_users_provider_id">
+        <column name="provider_id"/>
+    </createIndex>
 
-        <createIndex tableName="users" indexName="idx_users_provider_id">
-            <column name="provider_id"/>
-        </createIndex>
-
-        <rollback>
-            <dropIndex tableName="users" indexName="idx_users_provider_id"/>
-
-            <dropIndex tableName="users" indexName="idx_users_email"/>
-
-            <dropTable tableName="users" cascadeConstraints="true"/>
-        </rollback>
+    <rollback>
+        <dropIndex tableName="users" indexName="idx_users_provider_id"/>
+        <dropIndex tableName="users" indexName="idx_users_email"/>
+        <dropTable tableName="users" cascadeConstraints="true"/>
+    </rollback>
 
 </changeSet>
 
+<changeSet id="2" author="Dhiraj Jatav">
+
+    <comment>Stores temporary OTPs for signup and login.</comment>
+
+    <createTable tableName="email_verifications">
+
+        <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+            <constraints primaryKey="true" nullable="false"/>
+        </column>
+
+        <column name="email" type="VARCHAR(255)">
+            <constraints nullable="false" unique="true" uniqueConstraintName="uq_email_verifications_email"/>
+        </column>
+
+        <column name="otp" type="VARCHAR(10)">
+            <constraints nullable="false"/>
+        </column>
+
+        <column name="expires_at" type="TIMESTAMPTZ">
+            <constraints nullable="false"/>
+        </column>
+
+        <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+            <constraints nullable="false"/>
+        </column>
+
+    </createTable>
+
+    <createIndex tableName="email_verifications" indexName="idx_email_verifications_email">
+        <column name="email"/>
+    </createIndex>
+
+    <rollback>
+        <dropIndex tableName="email_verifications" indexName="idx_email_verifications_email"/>
+        <dropTable tableName="email_verifications" cascadeConstraints="true"/>
+    </rollback>
+
+</changeSet>
 
 </databaseChangeLog>

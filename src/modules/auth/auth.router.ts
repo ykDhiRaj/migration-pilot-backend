@@ -1,8 +1,10 @@
 import { Router } from 'express';
-import { validate } from '@shared/middleware';
+import { requireAuth, validate } from '@shared/middleware';
 import { ok, created } from '@core/http';
-import { RegisterSchema, LoginSchema, RefreshSchema, GoogleAuthSchema } from './auth.schema';
-import { registerLocal, login, refreshTokens, registerGoogle, googleAuthDev } from './auth.service';
+import { RegisterSchema, LoginSchema, RefreshSchema, GoogleAuthSchema, OtpSchema, VerifyRegisterOtpSchema } from './auth.schema';
+import { registerLocal, login, refreshTokens, registerGoogle, verifyLoginOtp, verifyRegistrationOtp } from './auth.service';
+import { AppRequest } from '@shared/types';
+import { UnauthorizedError } from '@core/errors';
 
 export const authRouter = Router();
 
@@ -29,15 +31,6 @@ authRouter.post('/google',validate(GoogleAuthSchema),async(req,res,next)=>{
   }
 })
 
-authRouter.post('/google-dev', async (_req, res, next) => {
-  try {
-    const result = await googleAuthDev();
-    ok(res, result);
-  } catch (err) {
-    next(err);
-  }
-});
-
 /**
  * POST /api/v1/auth/login
  * Body: { email, password }
@@ -46,6 +39,30 @@ authRouter.post('/google-dev', async (_req, res, next) => {
 authRouter.post('/login', validate(LoginSchema), async (req, res, next) => {
   try {
     const result = await login(req.body);
+    ok(res, result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/verify-register-otp', validate(VerifyRegisterOtpSchema), async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const result = await verifyRegistrationOtp(email, otp);
+    created(res, result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/verify-login-otp', requireAuth, validate(OtpSchema), async (req, res, next) => {
+  try {
+    const appReq = req as AppRequest;
+    const email = appReq.ctx?.userEmail;
+    if (!email) return next(new UnauthorizedError('Missing authenticated email'));
+
+    const { otp } = req.body;
+    const result = await verifyLoginOtp(email, otp);
     ok(res, result);
   } catch (err) {
     next(err);
