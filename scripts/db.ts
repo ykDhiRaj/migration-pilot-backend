@@ -44,14 +44,12 @@ const changelogDir = path.resolve(process.cwd(), 'db/changelog');
 const liquibaseArgs = process.argv.slice(2).join(' ') || 'update';
 
 const cmd = [
-  'docker run --rm',
-  '--network host',
-  `-v "${changelogDir}:/liquibase/changelog:ro"`,
-  'liquibase/liquibase:4.25',
+  'liquibase',
   `--url="${jdbcUrl}"`,
   `--username="${username}"`,
   `--password="${password}"`,
-  '--changeLogFile=changelog/master.xml',
+  `--searchPath="${changelogDir}"`,
+  `--changeLogFile="master.xml"`,
   liquibaseArgs,
 ].join(' \\\n  ');
 

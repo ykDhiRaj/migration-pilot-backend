@@ -21,21 +21,21 @@ export function agent() {
 }
 
 /** Create a user in the DB and return it with a valid access token. */
-export async function createTestUser(overrides: Partial<{
-  name: string;
-  email: string;
-  password: string;
-}> = {}) {
-  const email = overrides.email ?? `test-${Date.now()}@example.com`;
-  const name = overrides.name ?? 'Test User';
-  const password = overrides.password ?? 'password123';
+// export async function createTestUser(overrides: Partial<{
+//   name: string;
+//   email: string;
+//   password: string;
+// }> = {}) {
+//   const email = overrides.email ?? `test-${Date.now()}@example.com`;
+//   const name = overrides.name ?? 'Test User';
+//   const password = overrides.password ?? 'password123';
 
-  const passwordHash = await hashPassword(password);
-  const user = await createUser({ name, email, passwordHash });
+//   const passwordHash = await hashPassword(password);
+//   const user = await createUser({ name, email, passwordHash });
 
-  const accessToken = signAccessToken({ sub: user.id, email: user.email });
+//   const accessToken = signAccessToken({ sub: user.id, email: user.email });
 
-  return { user, accessToken, password };
-}
+//   return { user, accessToken, password };
+// }
 
 export const authHeader = (token: string) => ({ Authorization: `Bearer ${token}` });

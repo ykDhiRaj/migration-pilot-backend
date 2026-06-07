@@ -3,7 +3,7 @@ import { requireAuth, validate } from '@shared/middleware';
 import { ok } from '@core/http';
 import { AppRequest } from '@shared/types';
 import { UpdateProfileSchema } from './users.schema';
-import { getProfile, updateProfile } from './users.service';
+import { deleteUser, getProfile, updateProfile } from './users.service';
 
 export const usersRouter = Router();
 
@@ -33,3 +33,16 @@ usersRouter.patch('/me', requireAuth, validate(UpdateProfileSchema), async (req,
     next(err);
   }
 });
+
+usersRouter.delete('/me',requireAuth,async (req, res, next) => {
+    try {
+      const userId = (req as AppRequest).ctx.userId!;
+
+      await deleteUser(userId);
+
+      ok(res, {message: 'Account deleted successfully'});
+    } catch (err) {
+      next(err);
+    }
+  },
+);
