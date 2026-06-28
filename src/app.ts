@@ -11,6 +11,7 @@ import { logger } from '@core/logger';
 import { healthRouter } from '@modules/health/health.router';
 import { authRouter } from '@modules/auth/auth.router';
 import { usersRouter } from '@modules/users/users.router';
+import { projectsRouter } from '@modules/projects/projects.router';
 
 /**
  * Creates and configures the Express app.
@@ -54,6 +55,7 @@ export function buildApp(): express.Application {
   app.use(`${prefix}/health`, healthRouter);
   app.use(`${prefix}/auth`, authRouter);
   app.use(`${prefix}/users`, usersRouter);
+  app.use(`${prefix}/projects`,projectsRouter)
 
   // ── 404 & error handling ───────────────────────────────────────────────────
   app.use(notFoundHandler);

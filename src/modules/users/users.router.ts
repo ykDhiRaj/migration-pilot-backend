@@ -37,9 +37,7 @@ usersRouter.patch('/me', requireAuth, validate(UpdateProfileSchema), async (req,
 usersRouter.delete('/me',requireAuth,async (req, res, next) => {
     try {
       const userId = (req as AppRequest).ctx.userId!;
-
       await deleteUser(userId);
-
       ok(res, {message: 'Account deleted successfully'});
     } catch (err) {
       next(err);
