@@ -106,4 +106,84 @@
 
 </changeSet>
 
+<changeSet id="3" author="Dhiraj Jatav">
+
+    <comment>Creates the projects table.</comment>
+
+    <createTable tableName="projects">
+
+        <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+            <constraints primaryKey="true" nullable="false"/>
+        </column>
+
+        <column name="user_id" type="UUID">
+            <constraints nullable="false"/>
+        </column>
+
+        <column name="name" type="VARCHAR(255)">
+            <constraints nullable="false"/>
+        </column>
+
+        <column name="description" type="TEXT"/>
+
+        <column name="database_type" type="VARCHAR(20)">
+            <constraints nullable="false"/>
+        </column>
+
+        <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+            <constraints nullable="false"/>
+        </column>
+
+        <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+            <constraints nullable="false"/>
+        </column>
+
+    </createTable>
+
+    <addForeignKeyConstraint
+            baseTableName="projects"
+            baseColumnNames="user_id"
+            referencedTableName="users"
+            referencedColumnNames="id"
+            constraintName="fk_projects_user_id"
+            onDelete="CASCADE"/>
+
+    <sql>
+        ALTER TABLE projects
+        ADD CONSTRAINT chk_projects_database_type
+        CHECK (
+            database_type IN (
+                'MYSQL',
+                'POSTGRESQL'
+            )
+        );
+    </sql>
+
+    <createIndex tableName="projects" indexName="idx_projects_user_id">
+        <column name="user_id"/>
+    </createIndex>
+
+    <createIndex tableName="projects" indexName="idx_projects_database_type">
+        <column name="database_type"/>
+    </createIndex>
+
+    <addUniqueConstraint tableName="projects" columnNames="user_id,name" constraintName="uq_projects_user_name"/>
+
+    <rollback>
+        <dropIndex tableName="projects" indexName="idx_projects_database_type"/>
+
+        <dropIndex tableName="projects" indexName="idx_projects_user_id"/>
+
+        <dropUniqueConstraint tableName="projects" constraintName="uq_projects_user_name"/>
+
+        <sql>
+            ALTER TABLE projects
+            DROP CONSTRAINT IF EXISTS chk_projects_database_type;
+        </sql>
+
+        <dropTable tableName="projects"/>
+    </rollback>
+
+</changeSet>
+
 </databaseChangeLog>
